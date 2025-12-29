@@ -3,56 +3,81 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SofaScore Web View</title>
+    <title>Meus Jogos de Hoje</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        body { background-color: #121212; color: white; }
-        .card-jogo { background: #1e1e1e; border: 1px solid #333; margin-bottom: 10px; border-radius: 10px; }
-        .torneio-header { color: #00a8ff; font-weight: bold; margin-top: 20px; border-left: 4px solid #00a8ff; padding-left: 10px; }
+        body { background-color: #0f172a; color: #f8fafc; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .container { max-width: 800px; }
+        .card-jogo { background: #1e293b; border: 1px solid #334155; border-radius: 12px; margin-bottom: 8px; transition: 0.3s; }
+        .card-jogo:hover { border-color: #38bdf8; }
+        .time-nome { font-weight: 600; font-size: 1.1rem; }
+        .hora { color: #38bdf8; font-weight: bold; min-width: 60px; }
+        .torneio-badge { background: #334155; color: #94a3b8; padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; margin-top: 20px; display: inline-block; }
+        .search-box { background: #1e293b !important; border: 1px solid #334155 !important; color: white !important; }
     </style>
 </head>
 <body>
     <div class="container py-4">
-        <h2 class="text-center mb-4">⚽ Jogos de Hoje</h2>
-        <input type="text" id="busca" class="form-control mb-4 bg-dark text-white border-secondary" placeholder="Buscar time ou liga...">
+        <h2 class="text-center mb-4">⚽ Placar de Hoje</h2>
         
+        <input type="text" id="filtro" class="form-control search-box mb-4" placeholder="Buscar time ou campeonato...">
+
         <div id="lista-jogos">
-            <p class="text-center">Carregando jogos...</p>
+            <div class="text-center">Carregando jogos do servidor...</div>
         </div>
     </div>
 
     <script>
-        async function carregarJogos() {
+        let todosJogos = [];
+
+        async function carregar() {
             try {
-                const res = await fetch('jogos.json');
+                // Adiciona um número aleatório para evitar cache do navegador
+                const res = await fetch('jogos.json?t=' + Math.random());
                 const data = await res.json();
-                const container = document.getElementById('lista-jogos');
-                container.innerHTML = '';
-
-                let torneioAtual = '';
-
-                data.events.forEach(jogo => {
-                    if (jogo.tournament.name !== torneioAtual) {
-                        torneioAtual = jogo.tournament.name;
-                        container.innerHTML += `<h5 class="torneio-header">${torneioAtual}</h5>`;
-                    }
-
-                    const hora = new Date(jogo.startTimestamp * 1000).toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'});
-                    
-                    container.innerHTML += `
-                        <div class="card-jogo p-3 d-flex justify-content-between align-items-center">
-                            <span class="text-secondary small">${hora}</span>
-                            <div class="text-center flex-grow-1">
-                                <strong>${jogo.homeTeam.name}</strong> vs <strong>${jogo.awayTeam.name}</strong>
-                            </div>
-                            <span class="badge bg-primary">${jogo.status.type === 'finished' ? 'Fim' : 'Agendado'}</span>
-                        </div>`;
-                });
+                todosJogos = data.events;
+                exibir(todosJogos);
             } catch (e) {
-                document.getElementById('lista-jogos').innerHTML = '<p class="text-danger">Erro ao carregar os dados. Rode o scraper primeiro.</p>';
+                document.getElementById('lista-jogos').innerHTML = "<p class='text-danger text-center'>Os jogos ainda não foram gerados hoje. Vá em Actions e rode o script.</p>";
             }
         }
-        carregarJogos();
+
+        function exibir(jogos) {
+            const container = document.getElementById('lista-jogos');
+            container.innerHTML = '';
+            let ultimoTorneio = '';
+
+            jogos.forEach(j => {
+                if (j.tournament.name !== ultimoTorneio) {
+                    ultimoTorneio = j.tournament.name;
+                    container.innerHTML += `<div class="torneio-badge text-uppercase">${ultimoTorneio}</div>`;
+                }
+
+                const hora = new Date(j.startTimestamp * 1000).toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'});
+                
+                container.innerHTML += `
+                    <div class="card-jogo p-3 d-flex align-items-center">
+                        <div class="hora">${hora}</div>
+                        <div class="flex-grow-1 text-center">
+                            <span class="time-nome">${j.homeTeam.name}</span>
+                            <span class="mx-2 text-secondary">x</span>
+                            <span class="time-nome">${j.awayTeam.name}</span>
+                        </div>
+                    </div>`;
+            });
+        }
+
+        document.getElementById('filtro').addEventListener('input', (e) => {
+            const termo = e.target.value.toLowerCase();
+            const filtrados = todosJogos.filter(j => 
+                j.homeTeam.name.toLowerCase().includes(termo) || 
+                j.awayTeam.name.toLowerCase().includes(termo) ||
+                j.tournament.name.toLowerCase().includes(termo)
+            );
+            exibir(filtrados);
+        });
+
+        carregar();
     </script>
 </body>
 </html>
