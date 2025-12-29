@@ -1,0 +1,34 @@
+name: Atualizar Jogos Diários
+
+on:
+  schedule:
+    - cron: '0 9,15,21 * * *' # Roda às 09h, 15h e 21h automaticamente
+  workflow_dispatch: # Permite que você rode manualmente com um botão
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Baixar código
+        uses: actions/checkout@v3
+
+      - name: Instalar Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Instalar dependências
+        run: |
+          pip install playwright
+          playwright install chromium
+
+      - name: Rodar o Robô
+        run: python scraper.py
+
+      - name: Salvar dados no GitHub
+        run: |
+          git config --global user.name "GitHub Action"
+          git config --global user.email "action@github.com"
+          git add jogos.json
+          git commit -m "Atualizando jogos" || exit 0
+          git push
