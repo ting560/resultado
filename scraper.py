@@ -2,40 +2,37 @@ import json
 from playwright.sync_api import sync_playwright
 from datetime import datetime
 
-def capturar_jogos():
+def capturar():
     with sync_playwright() as p:
-        # Lança o navegador
         browser = p.chromium.launch(headless=True)
-        context = browser.new_context(
-            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-        )
+        context = browser.new_context(user_agent="Mozilla/5.0...")
         page = context.new_page()
         
-        # Data de hoje para a API
         hoje = datetime.now().strftime('%Y-%m-%d')
-        url_api = f"https://api.sofascore.com/api/v1/sport/football/scheduled-events/{hoje}"
+        # URL de Agendados e URL de Ao Vivo
+        url_agendados = f"https://api.sofascore.com/api/v1/sport/football/scheduled-events/{hoje}"
+        url_live = "https://api.sofascore.com/api/v1/sport/football/events/live"
         
         try:
-            print(f"Acessando Sofascore para a data: {hoje}")
-            # Entra na home primeiro para validar cookies
-            page.goto("https://www.sofascore.com/", wait_until="domcontentloaded", timeout=60000)
+            page.goto("https://www.sofascore.com/", wait_until="domcontentloaded")
             
-            # Vai para a API
-            response = page.goto(url_api)
-            
-            if response.status == 200:
-                dados = response.json()
-                # Salva o arquivo que o HTML vai ler
+            # Captura Agendados
+            res1 = page.goto(url_agendados)
+            if res1.status == 200:
                 with open('jogos.json', 'w', encoding='utf-8') as f:
-                    json.dump(dados, f, ensure_ascii=False, indent=4)
-                print("✅ Arquivo jogos.json gerado com sucesso!")
-            else:
-                print(f"❌ Erro na API: {response.status}")
-                
+                    json.dump(res1.json(), f, ensure_ascii=False)
+            
+            # Captura Ao Vivo
+            res2 = page.goto(url_live)
+            if res2.status == 200:
+                with open('live.json', 'w', encoding='utf-8') as f:
+                    json.dump(res2.json(), f, ensure_ascii=False)
+            
+            print("✅ Dados Agendados e Ao Vivo atualizados!")
         except Exception as e:
-            print(f"❗ Erro: {e}")
+            print(f"Erro: {e}")
         finally:
             browser.close()
 
 if __name__ == "__main__":
-    capturar_jogos()
+    capturar()
