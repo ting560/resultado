@@ -8,6 +8,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions: # Garante que o robô possa escrever os arquivos
+      contents: write
     steps:
       - name: Baixar código
         uses: actions/checkout@v3
@@ -25,10 +27,10 @@ jobs:
       - name: Rodar o Robô
         run: python scraper.py
 
-- name: Commitar mudanças
+      - name: Salvar dados no GitHub
         run: |
-          git config --global user.name "Robo Bot"
-          git config --global user.email "bot@github.com"
-          git add jogos.json live.json  # Adicione o live.json aqui
-          git commit -m "Atualizando jogos e live" || echo "Sem mudanças"
+          git config --global user.name "GitHub Action"
+          git config --global user.email "action@github.com"
+          git add jogos.json live.json  # <--- ADICIONADO live.json AQUI
+          git commit -m "Atualizando jogos agendados e ao vivo" || exit 0
           git push
