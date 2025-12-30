@@ -3,42 +3,50 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Meus Jogos de Hoje</title>
+    <title>SofaScore Pro - Live & Schedule</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        body { background-color: #0f172a; color: #f8fafc; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        .container { max-width: 800px; }
-        .card-jogo { background: #1e293b; border: 1px solid #334155; border-radius: 12px; margin-bottom: 8px; transition: 0.3s; }
-        .card-jogo:hover { border-color: #38bdf8; }
-        .time-nome { font-weight: 600; font-size: 1.1rem; }
-        .hora { color: #38bdf8; font-weight: bold; min-width: 60px; }
-        .torneio-badge { background: #334155; color: #94a3b8; padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; margin-top: 20px; display: inline-block; }
-        .search-box { background: #1e293b !important; border: 1px solid #334155 !important; color: white !important; }
+        body { background-color: #0f172a; color: #f8fafc; font-family: sans-serif; }
+        .card-jogo { background: #1e293b; border: 1px solid #334155; border-radius: 12px; margin-bottom: 8px; }
+        .live-badge { background: #ef4444; color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; animation: pulse 2s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+        .nav-pills .nav-link { color: #94a3b8; }
+        .nav-pills .nav-link.active { background-color: #38bdf8; color: #0f172a; font-weight: bold; }
+        .score { font-size: 1.2rem; font-weight: bold; color: #38bdf8; margin: 0 10px; }
     </style>
 </head>
 <body>
     <div class="container py-4">
-        <h2 class="text-center mb-4">⚽ Placar de Hoje</h2>
-        
-        <input type="text" id="filtro" class="form-control search-box mb-4" placeholder="Buscar time ou campeonato...">
-
-        <div id="lista-jogos">
-            <div class="text-center">Carregando jogos do servidor...</div>
+        <div class="d-flex justify-content-center mb-4">
+            <ul class="nav nav-pills" id="pills-tab">
+                <li class="nav-item">
+                    <button class="nav-link active" onclick="carregar('jogos.json')">📅 Agendados</button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link" onclick="carregar('live.json')">🔴 Ao Vivo</button>
+                </li>
+            </ul>
         </div>
+
+        <input type="text" id="filtro" class="form-control mb-4 bg-dark text-white border-secondary" placeholder="Buscar time ou liga...">
+        <div id="lista-jogos">Carregando...</div>
     </div>
 
     <script>
-        let todosJogos = [];
+        let dadosAtuais = [];
 
-        async function carregar() {
+        async function carregar(arquivo) {
+            // Estilo dos botões
+            document.querySelectorAll('.nav-link').forEach(btn => btn.classList.remove('active'));
+            event?.target?.classList?.add('active');
+
             try {
-                // Adiciona um número aleatório para evitar cache do navegador
-                const res = await fetch('jogos.json?t=' + Math.random());
+                const res = await fetch(arquivo + '?t=' + Math.random());
                 const data = await res.json();
-                todosJogos = data.events;
-                exibir(todosJogos);
+                dadosAtuais = data.events || [];
+                exibir(dadosAtuais);
             } catch (e) {
-                document.getElementById('lista-jogos').innerHTML = "<p class='text-danger text-center'>Os jogos ainda não foram gerados hoje. Vá em Actions e rode o script.</p>";
+                document.getElementById('lista-jogos').innerHTML = "<p class='text-center text-warning'>Nenhum dado encontrado para esta categoria.</p>";
             }
         }
 
@@ -50,18 +58,23 @@
             jogos.forEach(j => {
                 if (j.tournament.name !== ultimoTorneio) {
                     ultimoTorneio = j.tournament.name;
-                    container.innerHTML += `<div class="torneio-badge text-uppercase">${ultimoTorneio}</div>`;
+                    container.innerHTML += `<div class="text-secondary small mt-4 mb-2 fw-bold text-uppercase border-bottom border-secondary">${ultimoTorneio}</div>`;
                 }
 
                 const hora = new Date(j.startTimestamp * 1000).toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'});
-                
+                const isLive = j.status.type === 'inprogress';
+                const homeScore = j.homeScore?.current ?? '';
+                const awayScore = j.awayScore?.current ?? '';
+
                 container.innerHTML += `
                     <div class="card-jogo p-3 d-flex align-items-center">
-                        <div class="hora">${hora}</div>
-                        <div class="flex-grow-1 text-center">
-                            <span class="time-nome">${j.homeTeam.name}</span>
-                            <span class="mx-2 text-secondary">x</span>
-                            <span class="time-nome">${j.awayTeam.name}</span>
+                        <div style="min-width: 60px;">
+                            ${isLive ? '<span class="live-badge">LIVE</span>' : '<span class="text-info">'+hora+'</span>'}
+                        </div>
+                        <div class="flex-grow-1 d-flex justify-content-between align-items-center px-3">
+                            <span class="text-end" style="width: 40%">${j.homeTeam.name}</span>
+                            <span class="score">${homeScore} - ${awayScore}</span>
+                            <span class="text-start" style="width: 40%">${j.awayTeam.name}</span>
                         </div>
                     </div>`;
             });
@@ -69,15 +82,14 @@
 
         document.getElementById('filtro').addEventListener('input', (e) => {
             const termo = e.target.value.toLowerCase();
-            const filtrados = todosJogos.filter(j => 
+            const filtrados = dadosAtuais.filter(j => 
                 j.homeTeam.name.toLowerCase().includes(termo) || 
-                j.awayTeam.name.toLowerCase().includes(termo) ||
-                j.tournament.name.toLowerCase().includes(termo)
+                j.awayTeam.name.toLowerCase().includes(termo)
             );
             exibir(filtrados);
         });
 
-        carregar();
+        carregar('jogos.json'); // Inicia carregando agendados
     </script>
 </body>
 </html>
