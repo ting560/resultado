@@ -25,10 +25,10 @@ jobs:
       - name: Rodar o Robô
         run: python scraper.py
 
-      - name: Salvar dados no GitHub
+- name: Commitar mudanças
         run: |
-          git config --global user.name "GitHub Action"
-          git config --global user.email "action@github.com"
-          git add jogos.json
-          git commit -m "Atualizando jogos" || exit 0
+          git config --global user.name "Robo Bot"
+          git config --global user.email "bot@github.com"
+          git add jogos.json live.json  # Adicione o live.json aqui
+          git commit -m "Atualizando jogos e live" || echo "Sem mudanças"
           git push
