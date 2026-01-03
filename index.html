@@ -3,55 +3,64 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Placar em Tempo Real</title>
+    <title>Placares SuperPlacar</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: { extend: { colors: { dark: '#0f172a' } } }
+        }
+    </script>
+    <style>
+        /* Estilo para evitar o "piscado" de conteúdo não estilizado */
+        [v-cloak] { display: none; }
+        body { background-color: #0f172a; color: white; }
+    </style>
 </head>
-<body class="bg-gray-900 text-white p-4">
-    <div class="max-w-2xl mx-auto">
-        <h1 class="text-2xl font-bold mb-6 text-center text-green-500">⚽ SuperPlacar Live</h1>
-        <div id="conteudo">Carregando jogos...</div>
+<body class="p-4">
+    <div class="max-w-xl mx-auto">
+        <header class="flex justify-between items-center mb-6">
+            <h1 class="text-xl font-bold text-green-400">⚽ Meus Placares</h1>
+            <div id="status" class="text-xs text-gray-500 text-right"></div>
+        </header>
+
+        <div id="lista-jogos" class="space-y-4">
+            <div class="text-center py-10">Carregando dados...</div>
+        </div>
     </div>
 
     <script>
-        async function carregarJogos() {
+        async function atualizar() {
             try {
-                const response = await fetch('jogos.json');
-                const dados = await response.json();
-                const container = document.getElementById('conteudo');
-                container.innerHTML = '';
-
-                dados.forEach(camp => {
-                    let html = `
-                        <div class="mb-6 bg-gray-800 rounded-lg overflow-hidden shadow-lg">
-                            <div class="bg-gray-700 px-4 py-2 font-bold text-sm uppercase tracking-wider text-gray-300">
-                                ${camp.campeonato}
-                            </div>
-                    `;
-
-                    camp.jogos.forEach(jogo => {
-                        html += `
-                            <div class="flex items-center justify-between p-4 border-b border-gray-700 last:border-0">
-                                <div class="text-xs text-gray-400 w-16">${jogo.status}</div>
-                                <div class="flex-1 flex items-center justify-between px-4">
-                                    <span class="font-medium text-right flex-1">${jogo.casa}</span>
-                                    <span class="bg-black px-3 py-1 rounded mx-4 font-mono font-bold text-green-400">
-                                        ${jogo.placar}
+                const r = await fetch('jogos.json?t=' + Date.now()); // Evita cache
+                const data = await r.json();
+                const container = document.getElementById('lista-jogos');
+                document.getElementById('status').innerText = 'Atualizado em: ' + new Date().toLocaleTimeString();
+                
+                container.innerHTML = data.map(camp => `
+                    <div class="bg-slate-800 rounded-lg shadow-md overflow-hidden">
+                        <div class="bg-slate-700 px-3 py-1 text-[10px] font-bold uppercase text-slate-400">
+                            ${camp.campeonato}
+                        </div>
+                        ${camp.jogos.map(j => `
+                            <div class="flex items-center p-3 border-b border-slate-700 last:border-0">
+                                <div class="w-12 text-[10px] text-yellow-500 font-bold">${j.status}</div>
+                                <div class="flex-1 flex justify-between items-center px-2">
+                                    <span class="flex-1 text-right text-sm truncate">${j.casa}</span>
+                                    <span class="mx-3 bg-black px-2 py-1 rounded text-green-400 font-mono text-sm font-bold min-w-[60px] text-center">
+                                        ${j.placar}
                                     </span>
-                                    <span class="font-medium text-left flex-1">${jogo.fora}</span>
+                                    <span class="flex-1 text-left text-sm truncate">${j.fora}</span>
                                 </div>
                             </div>
-                        `;
-                    });
-
-                    html += `</div>`;
-                    container.innerHTML += html;
-                });
+                        `).join('')}
+                    </div>
+                `).join('');
             } catch (e) {
-                document.getElementById('conteudo').innerHTML = 'Nenhum jogo encontrado no momento.';
+                console.log("Aguardando arquivo jogos.json...");
             }
         }
-        carregarJogos();
-        setInterval(carregarJogos, 60000); // Atualiza a cada 1 minuto
+        atualizar();
+        setInterval(atualizar, 30000); // Atualiza a cada 30 segundos na tela
     </script>
 </body>
 </html>
