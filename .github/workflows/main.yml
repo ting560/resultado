@@ -1,11 +1,9 @@
-name: Atualizar Placar SuperPlacar
+name: Atualizar Placar
 
 on:
   schedule:
-    # Ajustei para rodar a cada 1 hora, já que placares mudam rápido. 
-    # Se quiser manter o original (9h, 15h, 21h), use: '0 9,15,21 * * *'
-    - cron: '0 * * * *' 
-  workflow_dispatch: # Permite rodar manualmente pelo botão no GitHub
+    - cron: '*/30 * * * *' # Roda a cada 30 minutos
+  workflow_dispatch:
 
 jobs:
   build:
@@ -13,28 +11,25 @@ jobs:
     permissions:
       contents: write
     steps:
-      - name: Baixar código
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
-      - name: Instalar Python
+      - name: Configurar Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.11'
 
-      - name: Instalar dependências do sistema e Playwright
+      - name: Instalar Dependências
         run: |
           pip install playwright
           playwright install --with-deps chromium
 
-      - name: Rodar o Robô
+      - name: Executar Scraper
         run: python scraper.py
 
-      - name: Salvar dados no GitHub
+      - name: Salvar no GitHub
         run: |
           git config --global user.name "GitHub Action"
           git config --global user.email "action@github.com"
-          # Adicionamos o novo arquivo gerado pelo scraper do SuperPlacar
-          git add superplacar_melhorado.json
-          # O comando abaixo evita erro se não houver mudanças nos dados
-          git commit -m "Atualizando placares SuperPlacar" || exit 0
+          git add jogos.json
+          git commit -m "Placar atualizado: $(date)" || exit 0
           git push
