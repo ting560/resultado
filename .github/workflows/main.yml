@@ -1,35 +1,28 @@
 name: Atualizar Placar
-
 on:
   schedule:
-    - cron: '*/30 * * * *' # Roda a cada 30 minutos
+    - cron: '*/15 * * * *'
   workflow_dispatch:
-
 jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v3
-
-      - name: Configurar Python
-        uses: actions/setup-python@v4
+      - uses: actions/checkout@v4 # Atualizado para v4
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-
-      - name: Instalar Dependências
+      - name: Instalar Playwright e Deps
         run: |
           pip install playwright
-          playwright install --with-deps chromium
-
-      - name: Executar Scraper
+          playwright install chromium --with-deps
+      - name: Rodar Scraper
         run: python scraper.py
-
-      - name: Salvar no GitHub
+      - name: Commit e Push
         run: |
-          git config --global user.name "GitHub Action"
-          git config --global user.email "action@github.com"
+          git config --global user.name "Github Bot"
+          git config --global user.email "bot@github.com"
           git add jogos.json
-          git commit -m "Placar atualizado: $(date)" || exit 0
+          git commit -m "Auto Update: $(date)" || exit 0
           git push
