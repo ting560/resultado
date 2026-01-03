@@ -10,20 +10,12 @@ def capturar():
         )
         page = context.new_page()
 
-        # MELHORIA: Bloquear carregamento de imagens e anúncios para ser mais rápido
-        def block_aggressively(route):
-            if route.request.resource_type in ["image", "font", "media"]:
-                route.abort()
-            else:
-                route.continue()
-        
-        page.route("**/*", block_aggressively)
+        # Bloqueia recursos desnecessários para ser mais rápido e evitar erros de permissão
+        page.route("**/*", lambda route: route.abort() if route.request.resource_type in ["image", "media", "font"] else route.continue())
 
         try:
             print("🔗 Acessando SuperPlacar...")
             page.goto("https://superplacar.com.br/", wait_until="domcontentloaded", timeout=60000)
-            
-            # Espera a lista carregar
             page.wait_for_selector(".lista-campeonatos", timeout=20000)
 
             dados_finais = []
@@ -36,12 +28,10 @@ def capturar():
                     
                     itens_jogos = bloco.locator(".jogos > .jogo").all()
                     for j in itens_jogos:
-                        # Pegamos os dados essenciais
                         status = j.locator(".hora-status").inner_text().strip()
                         casa = j.locator(".equipe-mandante .nome").inner_text().strip()
                         fora = j.locator(".equipe-visitante .nome").inner_text().strip()
                         
-                        # Placar com tratamento para campos vazios
                         p_casa = j.locator(".placar-mandante").inner_text().strip() or "0"
                         p_fora = j.locator(".placar-visitante").inner_text().strip() or "0"
 
@@ -60,10 +50,10 @@ def capturar():
             with open('jogos.json', 'w', encoding='utf-8') as f:
                 json.dump(dados_finais, f, ensure_ascii=False, indent=4)
             
-            print("✅ Dados atualizados com sucesso!")
+            print(f"✅ Sucesso: {len(dados_finais)} campeonatos salvos.")
 
         except Exception as e:
-            print(f"❌ Erro na captura: {e}")
+            print(f"❌ Erro: {e}")
         finally:
             browser.close()
 
