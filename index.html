@@ -3,247 +3,55 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SofaScore Pro Web</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        :root {
-            --bg-body: #121212;
-            --bg-sidebar: #1a1a1a;
-            --bg-card: #242424;
-            --accent: #1f6aa5;
-            --text-main: #ffffff;
-            --text-dim: #a0a0a0;
-        }
-
-        body { 
-            background-color: var(--bg-body); 
-            color: var(--text-main); 
-            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-            margin: 0;
-            display: flex;
-        }
-
-        /* Sidebar Estilo Python */
-        .sidebar {
-            width: 280px;
-            background-color: var(--bg-sidebar);
-            height: 100vh;
-            position: fixed;
-            padding: 20px;
-            border-right: 1px solid #333;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .main-content {
-            margin-left: 280px;
-            flex-grow: 1;
-            padding: 30px;
-            min-height: 100vh;
-        }
-
-        .logo-area {
-            text-align: center;
-            margin-bottom: 40px;
-        }
-
-        .logo-area h4 {
-            font-weight: 800;
-            letter-spacing: 1px;
-            color: var(--text-main);
-        }
-
-        /* Botões de Categoria */
-        .nav-pills .nav-link {
-            width: 100%;
-            text-align: left;
-            color: var(--text-dim);
-            background: transparent;
-            border-radius: 8px;
-            margin-bottom: 10px;
-            padding: 12px 15px;
-            transition: 0.2s;
-        }
-
-        .nav-pills .nav-link.active {
-            background-color: var(--accent) !important;
-            color: white !important;
-        }
-
-        .nav-pills .nav-link:hover:not(.active) {
-            background-color: #333;
-        }
-
-        /* Campo de Busca */
-        .search-box {
-            background: #2a2a2a !important;
-            border: 1px solid #444 !important;
-            color: white !important;
-            padding: 12px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-        }
-
-        /* Cartões de Jogos */
-        .game-card {
-            background: var(--bg-card);
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 15px;
-            border: 1px solid #333;
-            transition: transform 0.1s;
-        }
-
-        .tournament-title {
-            color: var(--accent);
-            font-size: 0.85rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            margin-bottom: 15px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .tournament-title::after {
-            content: "";
-            height: 1px;
-            background: #333;
-            flex-grow: 1;
-        }
-
-        .team-name {
-            font-size: 1.1rem;
-            font-weight: 500;
-        }
-
-        .score-box {
-            background: #111;
-            padding: 5px 15px;
-            border-radius: 6px;
-            font-size: 1.3rem;
-            font-weight: 800;
-            color: var(--accent);
-            min-width: 80px;
-            text-align: center;
-        }
-
-        .time-badge {
-            font-size: 0.85rem;
-            color: var(--text-dim);
-        }
-
-        /* Responsividade para Celular */
-        @media (max-width: 768px) {
-            body { flex-direction: column; }
-            .sidebar { 
-                width: 100%; 
-                height: auto; 
-                position: relative; 
-                border-right: none;
-                border-bottom: 1px solid #333;
-            }
-            .main-content { margin-left: 0; padding: 15px; }
-        }
-    </style>
+    <title>Placar em Tempo Real</title>
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
-
-    <aside class="sidebar">
-        <div class="logo-area">
-            <h4>⚽ SOFASCORE PRO</h4>
-        </div>
-
-        <div class="nav nav-pills flex-column" id="pills-tab">
-            <button class="nav-link active" id="btn-agendados" onclick="carregar('jogos.json', this)">📅 AGENDADOS</button>
-            <button class="nav-link" id="btn-live" onclick="carregar('live.json', this)">🔴 AO VIVO</button>
-        </div>
-
-        <div class="mt-4">
-            <label class="small text-secondary mb-2">FILTRAR TIME OU LIGA:</label>
-            <input type="text" id="filtro" class="form-control search-box" placeholder="Ex: Milan...">
-        </div>
-
-        <div class="mt-auto pt-4 text-center text-secondary small">
-            Status: <span id="status-text" class="text-success">Pronto</span>
-        </div>
-    </aside>
-
-    <main class="main-content">
-        <div id="container-jogos">
-            <div class="text-center mt-5 text-secondary">Aguardando seleção...</div>
-        </div>
-    </main>
+<body class="bg-gray-900 text-white p-4">
+    <div class="max-w-2xl mx-auto">
+        <h1 class="text-2xl font-bold mb-6 text-center text-green-500">⚽ SuperPlacar Live</h1>
+        <div id="conteudo">Carregando jogos...</div>
+    </div>
 
     <script>
-        let baseDados = [];
-
-        async function carregar(arquivo, elemento) {
-            // Estilo das abas
-            document.querySelectorAll('.nav-link').forEach(n => n.classList.remove('active'));
-            elemento.classList.add('active');
-
-            const status = document.getElementById('status-text');
-            status.innerText = "Atualizando...";
-            status.className = "text-warning";
-
+        async function carregarJogos() {
             try {
-                const res = await fetch(arquivo + '?t=' + Math.random());
-                const data = await res.json();
-                baseDados = data.events || [];
-                renderizar(baseDados);
-                status.innerText = "Concluído";
-                status.className = "text-success";
+                const response = await fetch('jogos.json');
+                const dados = await response.json();
+                const container = document.getElementById('conteudo');
+                container.innerHTML = '';
+
+                dados.forEach(camp => {
+                    let html = `
+                        <div class="mb-6 bg-gray-800 rounded-lg overflow-hidden shadow-lg">
+                            <div class="bg-gray-700 px-4 py-2 font-bold text-sm uppercase tracking-wider text-gray-300">
+                                ${camp.campeonato}
+                            </div>
+                    `;
+
+                    camp.jogos.forEach(jogo => {
+                        html += `
+                            <div class="flex items-center justify-between p-4 border-b border-gray-700 last:border-0">
+                                <div class="text-xs text-gray-400 w-16">${jogo.status}</div>
+                                <div class="flex-1 flex items-center justify-between px-4">
+                                    <span class="font-medium text-right flex-1">${jogo.casa}</span>
+                                    <span class="bg-black px-3 py-1 rounded mx-4 font-mono font-bold text-green-400">
+                                        ${jogo.placar}
+                                    </span>
+                                    <span class="font-medium text-left flex-1">${jogo.fora}</span>
+                                </div>
+                            </div>
+                        `;
+                    });
+
+                    html += `</div>`;
+                    container.innerHTML += html;
+                });
             } catch (e) {
-                document.getElementById('container-jogos').innerHTML = `<div class='text-center text-danger'>Erro: Arquivo ${arquivo} não encontrado.</div>`;
-                status.innerText = "Erro";
-                status.className = "text-danger";
+                document.getElementById('conteudo').innerHTML = 'Nenhum jogo encontrado no momento.';
             }
         }
-
-        function renderizar(lista) {
-            const container = document.getElementById('container-jogos');
-            container.innerHTML = '';
-            let lastTournament = '';
-
-            lista.forEach(j => {
-                if (j.tournament.name !== lastTournament) {
-                    lastTournament = j.tournament.name;
-                    container.innerHTML += `<div class="tournament-title">${lastTournament}</div>`;
-                }
-
-                const hora = new Date(j.startTimestamp * 1000).toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'});
-                const golsCasa = j.homeScore?.current ?? '-';
-                const golsFora = j.awayScore?.current ?? '-';
-
-                container.innerHTML += `
-                    <div class="game-card">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div class="time-badge">${hora}</div>
-                            <div class="d-flex align-items-center flex-grow-1 justify-content-center px-4">
-                                <div class="text-end team-name" style="width: 40%">${j.homeTeam.name}</div>
-                                <div class="score-box mx-4">${golsCasa} - ${golsFora}</div>
-                                <div class="text-start team-name" style="width: 40%">${j.awayTeam.name}</div>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            });
-        }
-
-        // Busca instantânea
-        document.getElementById('filtro').addEventListener('input', (e) => {
-            const termo = e.target.value.toLowerCase();
-            const filtrados = baseDados.filter(j => 
-                j.homeTeam.name.toLowerCase().includes(termo) || 
-                j.awayTeam.name.toLowerCase().includes(termo) ||
-                j.tournament.name.toLowerCase().includes(termo)
-            );
-            renderizar(filtrados);
-        });
-
-        // Carrega os agendados por padrão
-        window.onload = () => carregar('jogos.json', document.getElementById('btn-agendados'));
+        carregarJogos();
+        setInterval(carregarJogos, 60000); // Atualiza a cada 1 minuto
     </script>
 </body>
 </html>
