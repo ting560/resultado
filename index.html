@@ -3,16 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Placares SuperPlacar</title>
+    <title>Placares com Notificação</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: { extend: { colors: { dark: '#0f172a' } } }
-        }
-    </script>
     <style>
-        /* Estilo para evitar o "piscado" de conteúdo não estilizado */
-        [v-cloak] { display: none; }
         body { background-color: #0f172a; color: white; }
     </style>
 </head>
@@ -20,47 +13,111 @@
     <div class="max-w-xl mx-auto">
         <header class="flex justify-between items-center mb-6">
             <h1 class="text-xl font-bold text-green-400">⚽ Meus Placares</h1>
-            <div id="status" class="text-xs text-gray-500 text-right"></div>
+            <button id="btn-notif" onclick="pedirPermissao()" class="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-1 rounded transition">
+                🔔 Ativar Notificações
+            </button>
         </header>
 
-        <div id="lista-jogos" class="space-y-4">
-            <div class="text-center py-10">Carregando dados...</div>
-        </div>
+        <div id="lista-jogos" class="space-y-4 text-center py-10">Carregando dados...</div>
     </div>
 
+    <audio id="som-gol" src="https://www.myinstants.com/media/sounds/gol-da-globo-original-2022.mp3"></audio>
+
     <script>
+        let estadoAnterior = null;
+
+        // 1. Pedir permissão para o navegador
+        function pedirPermissao() {
+            Notification.requestPermission().then(permission => {
+                if (permission === "granted") {
+                    document.getElementById('btn-notif').classList.add('hidden');
+                    console.log("Notificações ativadas!");
+                }
+            });
+        }
+
         async function atualizar() {
             try {
-                const r = await fetch('jogos.json?t=' + Date.now()); // Evita cache
+                // Adicionamos um timestamp para evitar o cache do navegador
+                const r = await fetch('jogos.json?t=' + Date.now());
                 const data = await r.json();
-                const container = document.getElementById('lista-jogos');
-                document.getElementById('status').innerText = 'Atualizado em: ' + new Date().toLocaleTimeString();
                 
-                container.innerHTML = data.map(camp => `
-                    <div class="bg-slate-800 rounded-lg shadow-md overflow-hidden">
-                        <div class="bg-slate-700 px-3 py-1 text-[10px] font-bold uppercase text-slate-400">
-                            ${camp.campeonato}
-                        </div>
-                        ${camp.jogos.map(j => `
-                            <div class="flex items-center p-3 border-b border-slate-700 last:border-0">
-                                <div class="w-12 text-[10px] text-yellow-500 font-bold">${j.status}</div>
-                                <div class="flex-1 flex justify-between items-center px-2">
-                                    <span class="flex-1 text-right text-sm truncate">${j.casa}</span>
-                                    <span class="mx-3 bg-black px-2 py-1 rounded text-green-400 font-mono text-sm font-bold min-w-[60px] text-center">
-                                        ${j.placar}
-                                    </span>
-                                    <span class="flex-1 text-left text-sm truncate">${j.fora}</span>
-                                </div>
-                            </div>
-                        `).join('')}
-                    </div>
-                `).join('');
+                if (estadoAnterior) {
+                    verificarMudancas(data);
+                }
+                
+                estadoAnterior = data;
+                renderizar(data);
             } catch (e) {
-                console.log("Aguardando arquivo jogos.json...");
+                console.log("Erro ao carregar jogos.json");
             }
         }
+
+        // 2. Lógica para verificar GOL ou Mudança de Status
+        function verificarMudancas(novosDados) {
+            novosDados.forEach(camp => {
+                camp.jogos.forEach(jogoNovo => {
+                    // Busca o mesmo jogo no estado anterior
+                    const jogoVelho = encontrarJogo(jogoNovo.casa, jogoNovo.fora);
+                    
+                    if (jogoVelho && jogoVelho.placar !== jogoNovo.placar) {
+                        dispararAlerta(jogoNovo);
+                    }
+                });
+            });
+        }
+
+        function encontrarJogo(casa, fora) {
+            if (!estadoAnterior) return null;
+            for (let camp of estadoAnterior) {
+                let jogo = camp.jogos.find(j => j.casa === casa && j.fora === fora);
+                if (jogo) return jogo;
+            }
+            return null;
+        }
+
+        // 3. Disparar a Notificação
+        function dispararAlerta(jogo) {
+            // Toca som
+            const audio = document.getElementById('som-gol');
+            audio.play().catch(e => console.log("Som bloqueado pelo navegador"));
+
+            // Notificação do Windows/Mobile
+            if (Notification.permission === "granted") {
+                new Notification("⚽ GOL OU MUDANÇA NO PLACAR!", {
+                    body: `${jogo.casa} ${jogo.placar} ${jogo.fora}\nStatus: ${jogo.status}`,
+                    icon: "https://superplacar.com.br/favicon.ico"
+                });
+            }
+        }
+
+        function renderizar(data) {
+            const container = document.getElementById('lista-jogos');
+            container.innerHTML = data.map(camp => `
+                <div class="bg-slate-800 rounded-lg shadow-md overflow-hidden">
+                    <div class="bg-slate-700 px-3 py-1 text-[10px] font-bold uppercase text-slate-400">
+                        ${camp.campeonato}
+                    </div>
+                    ${camp.jogos.map(j => `
+                        <div class="flex items-center p-3 border-b border-slate-700 last:border-0">
+                            <div class="w-12 text-[10px] text-yellow-500 font-bold">${j.status}</div>
+                            <div class="flex-1 flex justify-between items-center px-2">
+                                <span class="flex-1 text-right text-sm truncate">${j.casa}</span>
+                                <span class="mx-3 bg-black px-2 py-1 rounded text-green-400 font-mono text-sm font-bold min-w-[60px] text-center">
+                                    ${j.placar}
+                                </span>
+                                <span class="flex-1 text-left text-sm truncate">${j.fora}</span>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `).join('');
+        }
+
+        // Inicia o ciclo
         atualizar();
-        setInterval(atualizar, 30000); // Atualiza a cada 30 segundos na tela
+        // Verifica a cada 45 segundos (tempo ideal para não sobrecarregar)
+        setInterval(atualizar, 45000); 
     </script>
 </body>
 </html>
